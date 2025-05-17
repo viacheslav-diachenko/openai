@@ -1,4 +1,4 @@
-streamlit
+Flask
 pdfminer.six
 ebooklib
-requests
+google-cloud-texttospeech

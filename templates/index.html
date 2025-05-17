@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Текст в Аудіо - Advanced</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {font-family: 'Inter', sans-serif;}
+        .input-error {border-color:#f87171 !important; box-shadow:0 0 0 2px #ef4444;}
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-200 flex items-center justify-center min-h-screen p-4">
+<div class="bg-slate-800/70 backdrop-blur-md p-6 sm:p-10 rounded-xl shadow-xl w-full max-w-2xl">
+    <h1 class="text-3xl font-bold text-center mb-6 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-500">Конвертер Тексту в Аудіо</h1>
+    <form id="ttsForm" class="space-y-6">
+        <div>
+            <label for="apiKeyJson" class="block mb-1 text-sm">JSON ключ Google Cloud:</label>
+            <textarea id="apiKeyJson" rows="8" class="w-full bg-slate-700 p-3 rounded border border-slate-600" placeholder="Вміст JSON ключа" required></textarea>
+        </div>
+        <div>
+            <label for="text" class="block mb-1 text-sm">Текст для озвучення:</label>
+            <textarea id="text" rows="5" class="w-full bg-slate-700 p-3 rounded border border-slate-600" placeholder="Введіть текст тут..."></textarea>
+        </div>
+        <div>
+            <label for="file" class="block mb-1 text-sm">Або завантажте файл (.txt, .pdf, .epub):</label>
+            <input type="file" id="file" accept=".txt,.pdf,.epub" class="w-full text-sm text-slate-400 file:bg-indigo-600 file:text-white file:rounded file:px-4 file:py-2 border border-slate-600 rounded bg-slate-700" />
+        </div>
+        <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+                <label for="voice" class="block mb-1 text-sm">Голос:</label>
+                <select id="voice" class="w-full bg-slate-700 p-2 rounded border border-slate-600">
+                    <option value="uk-UA-Wavenet-A">Wavenet A</option>
+                    <option value="uk-UA-Standard-A">Standard A</option>
+                </select>
+            </div>
+            <div>
+                <label for="speed" class="block mb-1 text-sm">Швидкість: <span id="speedVal">1.0</span></label>
+                <input id="speed" type="range" min="0.25" max="4.0" step="0.05" value="1.0" class="w-full" />
+            </div>
+            <div>
+                <label for="pitch" class="block mb-1 text-sm">Висота: <span id="pitchVal">0</span></label>
+                <input id="pitch" type="range" min="-20" max="20" step="0.1" value="0" class="w-full" />
+            </div>
+            <div>
+                <label for="volume" class="block mb-1 text-sm">Гучність: <span id="volumeVal">0</span></label>
+                <input id="volume" type="range" min="-10" max="10" step="0.5" value="0" class="w-full" />
+            </div>
+        </div>
+        <button id="submit" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 py-3 rounded text-white font-semibold">Конвертувати</button>
+    </form>
+    <div id="status" class="mt-4 text-sm text-center"></div>
+    <div id="result" class="mt-4 hidden text-center">
+        <audio id="audio" controls class="w-full"></audio>
+        <a id="download" href="#" download="output.mp3" class="block mt-2 text-indigo-400">Завантажити MP3</a>
+    </div>
+</div>
+<script>
+const form = document.getElementById('ttsForm');
+const apiKeyInput = document.getElementById('apiKeyJson');
+const textInput = document.getElementById('text');
+const fileInput = document.getElementById('file');
+const speedInput = document.getElementById('speed');
+const pitchInput = document.getElementById('pitch');
+const volumeInput = document.getElementById('volume');
+const statusEl = document.getElementById('status');
+const resultDiv = document.getElementById('result');
+const audioEl = document.getElementById('audio');
+const downloadEl = document.getElementById('download');
+
+speedInput.oninput = () => document.getElementById('speedVal').textContent = speedInput.value;
+pitchInput.oninput = () => document.getElementById('pitchVal').textContent = pitchInput.value;
+volumeInput.oninput = () => document.getElementById('volumeVal').textContent = volumeInput.value;
+
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    statusEl.textContent = '';
+    resultDiv.classList.add('hidden');
+    const fd = new FormData();
+    fd.append('apiKeyJson', apiKeyInput.value);
+    fd.append('text', textInput.value);
+    fd.append('voice', document.getElementById('voice').value);
+    fd.append('speed', speedInput.value);
+    fd.append('pitch', pitchInput.value);
+    fd.append('volumeGainDb', volumeInput.value);
+    fd.append('language', 'uk-UA');
+    if (fileInput.files.length > 0) {
+        fd.append('file', fileInput.files[0]);
+    }
+    try {
+        const resp = await fetch('/api/tts', {method: 'POST', body: fd});
+        if(resp.ok){
+            const blob = await resp.blob();
+            const url = URL.createObjectURL(blob);
+            audioEl.src = url;
+            downloadEl.href = url;
+            resultDiv.classList.remove('hidden');
+        } else {
+            const data = await resp.json();
+            statusEl.textContent = data.error || 'Помилка сервера';
+        }
+    } catch(err){
+        statusEl.textContent = 'Помилка з\'єднання';
+    }
+});
+</script>
+</body>
+</html>
